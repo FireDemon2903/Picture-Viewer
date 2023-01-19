@@ -9,7 +9,7 @@ import os
 # Laver en klasse som hedder "BilledeContainer" til at indeholde alle de billeder vi skal bruge samt metode til at vise dem.
 class BilledKig(ttk.Frame):
     dirlist = os.listdir(
-        'C:\\Users\\Jonathan\\OneDrive - Rybners\\2G\\Programmering - 2G\\Gamejam - Jonathan^2 & Nataniel\\data')
+        '.\\tis')
     print(dirlist)
     print(len(dirlist))
 
@@ -31,7 +31,7 @@ class BilledKig(ttk.Frame):
         forrige_knap.grid(column=2, row=2, sticky=tk.EW, padx=5, pady=5)  # Placer knap
 
         billede = Image.open(
-            f"C:\\Users\\Jonathan\\OneDrive - Rybners\\2G\\Programmering - 2G\\Gamejam - Jonathan^2 & Nataniel\\data\\{self.dirlist[0]}")
+            f".\\tis\\{self.dirlist[0]}")
         billede = billede.resize((780, 500))
         self.curr_img = ImageTk.PhotoImage(billede)
 
@@ -42,7 +42,7 @@ class BilledKig(ttk.Frame):
         try:
             self.curr_img_num += 1
 
-            billede = Image.open(f"C:\\Users\\Jonathan\\OneDrive - Rybners\\2G\\Programmering - 2G\\Gamejam - Jonathan^2 & Nataniel\\data\\{dirlist[self.curr_img_num]}")  # path
+            billede = Image.open(f".\\tis\\{dirlist[self.curr_img_num]}")  # path
             img = ImageTk.PhotoImage(billede)  # convert image object to tkinter image
             # ImageTk.getimage(img)  # get info about image (e.g. size)
 
@@ -77,12 +77,17 @@ class BilledKig(ttk.Frame):
             else:
                 self.curr_img_num = len(dirlist) - 1
 
-            billede = Image.open(f"C:\\Users\\Jonathan\\OneDrive - Rybners\\2G\\Programmering - 2G\\Gamejam - Jonathan^2 & Nataniel\\data\\{dirlist[self.curr_img_num]}")
+
+            billede = Image.open(f".\\tis\\{dirlist[self.curr_img_num]}")
             img = ImageTk.PhotoImage(billede)
+
+            if img.width() <= 780: pass  # If width less than window
+            elif img.height() <= 500: pass  # If length less than window
+            else: img = ImageTk.PhotoImage(billede.resize((780, 500)))  # If dimensions are larger: resize
 
             self.curr_img = img
             self.billede_label = ttk.Label(owner, image=self.curr_img)
-            self.billede_label.grid(column=3, row=5, sticky=tk.EW, padx=5, pady=5)
+            self.billede_label.grid(column=0, row=5, sticky=tk.NSEW, padx=5, pady=5, columnspan=5, rowspan=5)
 
         except PermissionError:
             self.vis_forrige_billede(dirlist, owner)
