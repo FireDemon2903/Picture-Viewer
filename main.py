@@ -1,88 +1,81 @@
+import tkinter
 import tkinter as tk
 from tkinter import ttk
 from tkinter.messagebox import showerror
 from PIL import Image, ImageTk
 import os
-
 # ^ ^ ^ ^ ^ Import ^ ^ ^ ^ ^
+# TODO: Fix billede load, så den opdaterer billedets demensioner (scale) efter resize_image funktionen
+# TODO: Fix billede panning med mus
+# TODO: Lås knapper og tset_label i frame over billedet, så de ikke flytter sig når der bliver zoomet
+# TODO: Fjern hard-coded filepaths
+# TODO: Profit :)
 
 
 # Lav klassen "BilledKig" til widgets som skal vises til brugeren
 class BilledKig(ttk.Frame):
-    dirlist = os.listdir('C:\\Users\\Jonathan\\OneDrive - Rybners\\2G\\Programmering - 2G\\Gamejam - Jonathan^2 & Nataniel\\data')
-
     curr_img_num = 0
 
-    def __init__(self, owner):
-        super().__init__(owner)  # Her kalder vi superklassen, som er "ttk.Frame".
+    def __init__(self, owner_root, dirlist):
+        super().__init__(owner_root)  # Her kalder vi superklassen, som er "ttk.Frame".
         # Som argument sendes vores "App" klasse, som agerer som en beholder
+        self.dirlist = dirlist
 
         # Test label
-        test_label = ttk.Label(owner, text="Hello World")
-        test_label.grid(row=0, column=0, sticky="nsew")
+        self.test_label = ttk.Label(self, text="Hello World", anchor=tk.CENTER)
+        self.test_label.grid(row=0, column=1, sticky=tk.EW, columnspan=2)
 
-        naeste_knap = ttk.Button(owner, text="Neaste", command=lambda: self.vis_neaste_billede(self.dirlist, owner))  # Opret knap
-        naeste_knap.grid(column=2, row=2, sticky=tk.EW, padx=5, pady=5)  # Placer knap
-        naeste_knap.focus()
+        self.naeste_knap = ttk.Button(self, text="Neaste", command=lambda: self.vis_neaste_billede(owner_root))  # Opret knap
+        self.naeste_knap.grid(column=2, row=1, sticky=tk.EW, padx=5, pady=5)  # Placer knap
 
-        forrige_knap = ttk.Button(owner, text="Forrige", command=lambda: self.vis_forrige_billede(self.dirlist, owner))  # Opret knap
-        forrige_knap.grid(column=1, row=2, sticky=tk.EW, padx=5, pady=5)  # Placer knap
+        self.forrige_knap = ttk.Button(self, text="Forrige", command=lambda: self.vis_forrige_billede(owner_root))  # Opret knap
+        self.forrige_knap.grid(column=1, row=1, sticky=tk.EW, padx=5, pady=5)  # Placer knap
 
-        self.img = Image.open(
-            f"C:\\Users\\Jonathan\\OneDrive - Rybners\\2G\\Programmering - 2G\\Gamejam - Jonathan^2 & Nataniel\\data\\{self.dirlist[0]}")
-        billede = self.img.resize((780, 500))
-        self.curr_img = ImageTk.PhotoImage(billede)
+        self.img = Image.open(f"C:\\Users\\Jonathan\\OneDrive - Rybners\\2G\\Programmering - 2G\\Gamejam - Jonathan^2 & Nataniel\\data\\{self.dirlist[0]}")
+        dim = self.resize_image_check(self.img)
+        self.img_tk = ImageTk.PhotoImage(self.img.resize(dim))
 
-        self.billede_label = ttk.Label(owner, image=self.curr_img)
-        self.billede_label.grid(column=0, row=5, sticky=tk.EW, padx=5, pady=5, columnspan=5, rowspan=5)
+        self.billede_label = ttk.Label(self, image=self.img_tk)
+        self.billede_label.grid(column=0, row=2, sticky=tk.EW, padx=5, pady=5, columnspan=5, rowspan=5)
 
-        self.billede_label.bind("<MouseWheel>", self.zoom)
+        owner_root.bind("<MouseWheel>", self.zoom)
         self.x, self.y = 0, 0
         self.scale = 1.0
 
-    def vis_neaste_billede(self, dirlist, owner):  # Funktion til visning af naeste billede
+        owner_root.bind("w", lambda event: self.vis_forrige_billede(owner_root))
+        owner_root.bind("e", lambda event: self.vis_neaste_billede(owner_root))
+        owner_root.bind("r", lambda event: self.update_billede())
+        # Eksempel: self.frame.bind("<Return>", lambda event, a=10, b=20, c=30: self.rand_func(a, b, c))
+
+        # test size change
+        # owner.geometry('1200x800')
+        # size change works, but isn't implemented (yet?)
+
+    def vis_neaste_billede(self, owner):  # Funktion til visning af naeste billede
         try:
             self.curr_img_num += 1  # Increment index number (next picture)
-
-            self.img = Image.open(f"C:\\Users\\Jonathan\\OneDrive - Rybners\\2G\\Programmering - 2G\\Gamejam - Jonathan^2 & Nataniel\\data\\{dirlist[self.curr_img_num]}")  # path
-            img_dim = self.resize_image(ImageTk.PhotoImage(self.img))  # Skaf billedets demensioner. Hvis det ikke passer ind i beholderen, gør det mindre
-            img = ImageTk.PhotoImage(self.img.resize(img_dim))  # Gør billedet mindre, hvis det ikke passer
-
-            self.curr_img = img  # Set nyt billede til at blive vist
-            self.billede_label.config(image=self.curr_img)  # = ttk.Label(owner, image=self.curr_img)  # Lav label til billedet
-            self.billede_label.grid(column=0, row=5, sticky=tk.NSEW, padx=5, pady=5, columnspan=5, rowspan=5)  # Formater
-            self.x, self.y = 0, 0
-
-
-            # test size change
-            # owner.geometry('1200x800')
-            # size change works, but isn't implemented (yet?)
+            self.update_billede()
+            self.naeste_knap.focus()
 
         except IndexError:
             self.curr_img_num = -1
-            self.vis_neaste_billede(dirlist, owner)
+            self.vis_neaste_billede(owner)
 
         except PermissionError:
-            self.vis_neaste_billede(dirlist, owner)
+            self.vis_neaste_billede(owner)
 
-    def vis_forrige_billede(self, dirlist, owner):  # Funktion til visning af forrige billede
+    def vis_forrige_billede(self, owner):  # Funktion til visning af forrige billede
         try:
             if self.curr_img_num != 0:
                 self.curr_img_num -= 1
             else:
-                self.curr_img_num = len(dirlist) - 1
+                self.curr_img_num = len(self.dirlist) - 1
 
-            self.img = Image.open(f"C:\\Users\\Jonathan\\OneDrive - Rybners\\2G\\Programmering - 2G\\Gamejam - Jonathan^2 & Nataniel\\data\\{dirlist[self.curr_img_num]}")
-            img_dim = self.resize_image(ImageTk.PhotoImage(self.img))
-            img = ImageTk.PhotoImage(self.img.resize(img_dim))  # Fit image to container size
-
-            self.curr_img = img
-            self.billede_label = ttk.Label(owner, image=self.curr_img)
-            self.billede_label.grid(column=0, row=5, sticky=tk.EW, padx=5, pady=5, columnspan=5, rowspan=5)
-            self.x, self.y = 0, 0
+            self.update_billede()
+            self.forrige_knap.focus()
 
         except PermissionError:  # Hvis der er andre mapper i mappen, ignorer dem og gå videre
-            self.vis_forrige_billede(dirlist, owner)
+            self.vis_forrige_billede(owner)
 
     def zoom(self, event):
         if event.delta > 0:
@@ -91,12 +84,22 @@ class BilledKig(ttk.Frame):
             self.scale -= 0.1
 
         # Create a new image with the zoomed size
-        self.curr_img = ImageTk.PhotoImage(self.img.resize((int(self.img.width*self.scale), int(self.img.height*self.scale))))
-        self.billede_label.config(image=self.curr_img)
+        self.img_tk = ImageTk.PhotoImage(self.img.resize((int(self.img.width * self.scale), int(self.img.height * self.scale))))
+        self.billede_label.config(image=self.img_tk)
+
+    def update_billede(self):
+        self.img = Image.open(f"C:\\Users\\Jonathan\\OneDrive - Rybners\\2G\\Programmering - 2G\\Gamejam - Jonathan^2 & Nataniel\\data\\{self.dirlist[self.curr_img_num]}")
+        dim = self.resize_image_check(self.img)
+
+        self.img_tk = ImageTk.PhotoImage(self.img.resize(dim))
+        self.billede_label.config(image=self.img_tk)
+
+        self.x, self.y = 0, 0
+        self.scale = 1
 
     @staticmethod
-    def resize_image(image):  # Staticmethod, som returnerer et billedes demensioner, efter et check om den kan være i beholderen
-        img_width, img_height = image.width(), image.height()  # Get image dimensions
+    def resize_image_check(image):  # Staticmethod, som returnerer et billedes demensioner, efter et check om den kan være i beholderen
+        img_width, img_height = image.width, image.height  # Get image dimensions
         max_width, max_height = 780, 500  # Assign max width and height
 
         resize_width = False
@@ -121,5 +124,6 @@ class App(tk.Tk):
 
 if __name__ == "__main__":
     app = App()  # Instansiér App()
-    BilledKig(app)  # Instansiér BilledKig(), med app som arg(beholder)
+    img_folder = os.listdir('C:\\Users\\Jonathan\\OneDrive - Rybners\\2G\\Programmering - 2G\\Gamejam - Jonathan^2 & Nataniel\\data')
+    BilledKig(app, img_folder).pack()  # Instansiér BilledKig(), med app og dirlist som args
     app.mainloop()  # Kør mainloop
